@@ -168,7 +168,7 @@ long long string_to_int64(char *s) { return atoll(s); }
 long string_to_int_arq(char *s) { return atol(s); }
 float string_to_real32(char *s) { return (float)atof(s); }
 double string_to_real64(char *s) { return atof(s); }
-long double string_to_real_ext(char *s) { return (long double)atof(s); }
+long double string_to_real_ext(char *s) { return strtold(s, NULL); }
 
 // --- MATH IMPLEMENTATION ---
 double bs_sin(double x) { return sin(x); }
