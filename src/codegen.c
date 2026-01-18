@@ -1524,11 +1524,11 @@ void codegen(ASTNode *node, FILE *file)
         break;
 
     case NODE_LITERAL_DOUBLE:
-        fprintf(file, "%f", node->double_value);
+        fprintf(file, "%.16g", node->double_value);
         break;
 
     case NODE_LITERAL_FLOAT:
-        fprintf(file, "%f", node->float_value);
+        fprintf(file, "%.9g", node->float_value);
         break;
 
     case NODE_LITERAL_STRING:
