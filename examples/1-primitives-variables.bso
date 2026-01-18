@@ -41,7 +41,7 @@ programa "TiposPrimitivos" {
 
     escreval("R32 = ${r32:.2f}");
     escreval("R64 = ${r64:.10f}");
-    escreval("R_ext = ${r_ext:.20f}");
+    escreval("R_ext = ${r_ext:.20Lf}");
     // Lógico
     var ativo: booleano = verdadeiro;                 // true ou false
 
