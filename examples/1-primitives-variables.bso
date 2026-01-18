@@ -76,8 +76,8 @@ programa "TiposPrimitivos" {
     escreval("N16 = ${n16}");
     escreval("N32 = ${n32}");
     escreval("N64 = ${n64}");
-    escreval("F32 = ${f32}");
-    escreval("F64 = ${f64}");
-    escreval("F_ext = ${f_ext}");
+    escreval("F32 = ${f32:.9f}");
+    escreval("F64 = ${f64:.16f}");
+    escreval("F_ext = ${f_ext:.20Lf}");
     escreval("Bl = ${bl}");
 }
