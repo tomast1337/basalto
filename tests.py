@@ -73,9 +73,9 @@ def test_primitives_variables():
     assert "N16 = 65535" in proc_run.stdout
     assert "N32 = 2147483647" in proc_run.stdout
     assert "N64 = 2147483647" in proc_run.stdout
-    assert "F32 = 1.500000" in proc_run.stdout
-    assert "F64 = 2.718280" in proc_run.stdout
-    #assert "F_ext = 485167206" in proc_run.stdout
+    assert "F32 = 1.5" in proc_run.stdout
+    assert "F64 = 2.71828" in proc_run.stdout
+    assert "F_ext = 1.123456789" in proc_run.stdout
     assert "Bl = 0" in proc_run.stdout
 
 
