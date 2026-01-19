@@ -1,3 +1,0 @@
-importar mat @ "std/matematica";
-programa "Test" {
-}

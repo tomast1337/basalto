@@ -1,3 +1,0 @@
-importar math @ "std/math";
-biblioteca "TestLib" {
-}
