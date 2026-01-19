@@ -126,30 +126,114 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-    // Debug: Print AST tree
+    // Debug: Print AST tree (before unwrapping)
     if (debug_mode) {
         print_ast(root_node);
     }
 
-    // 5. Determine Output Name & Type
+    // 5. Unwrap the wrapper structure and flatten the BLOCK
+    // The parser creates: WRAPPER -> [IMPORTS..., ACTUAL_PROGRAM -> [BLOCK -> [statements...]]]
+    // We need: ACTUAL_PROGRAM -> [statements...] (statements are direct children, no BLOCK wrapper)
+    ASTNode* actual_root = root_node;
+    
+    // Check if we have a wrapper structure (imports before program/library)
+    if (root_node->type == NODE_PROGRAM || root_node->type == NODE_LIBRARY) {
+        // Find the actual program/library node (should be the last child if wrapper has imports)
+        ASTNode* inner_program = NULL;
+        
+        // Look for the actual PROGRAM/LIBRARY node in children
+        // It should be the last child (after any imports)
+        for (int i = arrlen(root_node->children) - 1; i >= 0; i--) {
+            if (root_node->children[i]->type == NODE_PROGRAM || 
+                root_node->children[i]->type == NODE_LIBRARY) {
+                inner_program = root_node->children[i];
+                break;
+            }
+        }
+        
+        if (inner_program) {
+            // Extract the name from inner program
+            const char* program_name = inner_program->name;
+            
+            // Create a new flattened root
+            actual_root = ast_new(inner_program->type);
+            if (program_name) {
+                actual_root->name = sdsnew(program_name);
+            }
+            
+            // --- FLATTENING LOGIC ---
+            // Iterate children of the inner Program/Library
+            for(int j = 0; j < arrlen(inner_program->children); j++) {
+                ASTNode* inner = inner_program->children[j];
+                
+                // Skip imports (handled recursively elsewhere)
+                if (inner->type == NODE_IMPORT) continue;
+                
+                // CRITICAL: Unwrap the BLOCK
+                // The parser puts the program body inside a NODE_BLOCK. 
+                // We must pull the contents OUT so they become top-level instructions.
+                if (inner->type == NODE_BLOCK) {
+                    for(int k = 0; k < arrlen(inner->children); k++) {
+                        ASTNode* instruction = inner->children[k];
+                        ast_add_child(actual_root, instruction);
+                    }
+                } else {
+                    // If there are other direct children (unlikely with current grammar, but safe)
+                    ast_add_child(actual_root, inner);
+                }
+            }
+            // --- END FLATTENING ---
+        }
+    }
+    
+    // If we didn't have a wrapper, we still need to check for direct BLOCK unwrapping
+    // This handles the case where parser returns PROGRAM -> [BLOCK -> [statements]]
+    if (actual_root == root_node && 
+        (actual_root->type == NODE_PROGRAM || actual_root->type == NODE_LIBRARY)) {
+        // Check if first child is a BLOCK - if so, unwrap it
+        if (arrlen(actual_root->children) > 0 && 
+            actual_root->children[0]->type == NODE_BLOCK) {
+            
+            ASTNode* block = actual_root->children[0];
+            ASTNode* new_root = ast_new(actual_root->type);
+            if (actual_root->name) {
+                new_root->name = sdsnew(actual_root->name);
+            }
+            
+            // Move all block children to root (unwrapping)
+            for (int i = 0; i < arrlen(block->children); i++) {
+                ast_add_child(new_root, block->children[i]);
+            }
+            
+            actual_root = new_root;
+        }
+    }
+
+    // Debug: Print AST tree (after unwrapping)
+    if (debug_mode) {
+        printf("\n=== AST After Unwrapping ===\n");
+        print_ast(actual_root);
+    }
+
+    // 6. Determine Output Name & Type
     // Priority: CLI Flag (-o) > Program/Library Name > Default "output"
     const char* final_name = "output";
-    int is_library = (root_node->type == NODE_LIBRARY);
+    int is_library = (actual_root->type == NODE_LIBRARY);
     
     if (output_filename) {
         final_name = output_filename;
-    } else if (root_node->name) {
+    } else if (actual_root->name) {
         // Use the name defined in 'programa "Name"' or 'biblioteca "Name"'
-        final_name = root_node->name;
+        final_name = actual_root->name;
     }
 
-    // 6. Generate C File Name AND ASM File Name
+    // 7. Generate C File Name AND ASM File Name
     char c_filename[256];
     char asm_filename[256];
     snprintf(c_filename, sizeof(c_filename), "%s.c", final_name);
     snprintf(asm_filename, sizeof(asm_filename), "%s_embeds.S", final_name);
 
-    // 7. Generate Code
+    // 8. Generate Code
     if (debug_mode) printf("[Basalto] Generating %s and %s...\n", c_filename, asm_filename);
     
     FILE* out_c = fopen(c_filename, "w");
@@ -162,13 +246,13 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
     
-    // Pass BOTH files and source path to codegen
-    codegen(root_node, out_c, out_asm, input_filename);
+    // Pass BOTH files and source path to codegen (use unwrapped root)
+    codegen(actual_root, out_c, out_asm, input_filename);
     
     fclose(out_c);
     fclose(out_asm);
 
-    // 8. Compile with GCC (unless --emit-c is set)
+    // 9. Compile with GCC (unless --emit-c is set)
     if (transpile_only) {
         printf("[Basalto] Transpilation complete: %s\n", c_filename);
     } else {
@@ -201,7 +285,7 @@ int main(int argc, char** argv) {
         } else {
             printf("[Basalto] Build successful: ./%s\n", final_name);
             
-            // 9. Run the program if --run flag is set
+            // 10. Run the program if --run flag is set
             if (run_after_compile) {
                 printf("[Basalto] Running ./%s...\n", final_name);
                 char run_cmd[512];

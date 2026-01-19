@@ -640,9 +640,27 @@ void codegen(ASTNode *node, FILE *file)
             fprintf(file, "const char* NOME_PROGRAMA = \"%s\";\n\n", node->name);
         }
 
-        // Get the block (first child)
-        ASTNode *content_block = (arrlen(node->children) > 0) ? node->children[0] : NULL;
-        if (!content_block)
+        // Get the statements - support both unwrapped (direct children) and wrapped (BLOCK) structures
+        ASTNode *content_block = NULL;
+        ASTNode **statements_array = NULL;
+        int statements_count = 0;
+        
+        if (arrlen(node->children) > 0) {
+            // Check if first child is a BLOCK (old structure) or statements are direct children (new unwrapped structure)
+            if (node->children[0]->type == NODE_BLOCK) {
+                // Old structure: PROGRAM -> [BLOCK -> [statements...]]
+                content_block = node->children[0];
+                statements_array = content_block->children;
+                statements_count = arrlen(content_block->children);
+            } else {
+                // New unwrapped structure: PROGRAM -> [statements...]
+                content_block = NULL; // No block wrapper
+                statements_array = node->children;
+                statements_count = arrlen(node->children);
+            }
+        }
+        
+        if (statements_count == 0)
         {
             // Empty program/library
             if (is_library)
@@ -662,18 +680,18 @@ void codegen(ASTNode *node, FILE *file)
         }
 
         // --- PASS 1: STRUCT DEFINITIONS ---
-        for (int i = 0; i < arrlen(content_block->children); i++)
+        for (int i = 0; i < statements_count; i++)
         {
-            if (content_block->children[i]->type == NODE_STRUCT_DEF)
+            if (statements_array[i]->type == NODE_STRUCT_DEF)
             {
-                codegen(content_block->children[i], file);
+                codegen(statements_array[i], file);
             }
         }
 
         // --- PASS 1B: EXTERN BLOCK STRUCT DEFINITIONS ---
-        for (int i = 0; i < arrlen(content_block->children); i++)
+        for (int i = 0; i < statements_count; i++)
         {
-            ASTNode *child = content_block->children[i];
+            ASTNode *child = statements_array[i];
             if (child->type == NODE_EXTERN_BLOCK)
             {
                 // Generate: struct { double (*cosseno)(double); ... } math;
@@ -702,22 +720,22 @@ void codegen(ASTNode *node, FILE *file)
         }
 
         // --- PASS 2: FUNCTION PROTOTYPES ---
-        for (int i = 0; i < arrlen(content_block->children); i++)
+        for (int i = 0; i < statements_count; i++)
         {
-            if (content_block->children[i]->type == NODE_FUNC_DEF)
+            if (statements_array[i]->type == NODE_FUNC_DEF)
             {
-                codegen_func_signature(content_block->children[i], file);
+                codegen_func_signature(statements_array[i], file);
                 fprintf(file, ";\n");
             }
         }
         fprintf(file, "\n");
 
         // --- PASS 3: FUNCTION IMPLEMENTATIONS ---
-        for (int i = 0; i < arrlen(content_block->children); i++)
+        for (int i = 0; i < statements_count; i++)
         {
-            if (content_block->children[i]->type == NODE_FUNC_DEF)
+            if (statements_array[i]->type == NODE_FUNC_DEF)
             {
-                codegen(content_block->children[i], file);
+                codegen(statements_array[i], file);
             }
         }
 
@@ -734,9 +752,9 @@ void codegen(ASTNode *node, FILE *file)
         scope_enter(); // Scope for Main/Init
 
         // Load extern libraries first
-        for (int i = 0; i < arrlen(content_block->children); i++)
+        for (int i = 0; i < statements_count; i++)
         {
-            ASTNode *child = content_block->children[i];
+            ASTNode *child = statements_array[i];
             if (child->type == NODE_EXTERN_BLOCK)
             {
                 // dlopen
@@ -769,12 +787,15 @@ void codegen(ASTNode *node, FILE *file)
             }
         }
 
-        // Generate Statements
-        for (int i = 0; i < arrlen(content_block->children); i++)
+        // Generate Statements inside Main
+        for (int i = 0; i < statements_count; i++)
         {
-            ASTNode *child = content_block->children[i];
-            // Skip definitions, only generate statements
-            if (child->type != NODE_STRUCT_DEF && child->type != NODE_FUNC_DEF && child->type != NODE_EXTERN_BLOCK)
+            ASTNode *child = statements_array[i];
+            // Skip Definitions, Imports, FFI blocks (already handled)
+            if (child->type != NODE_FUNC_DEF && 
+                child->type != NODE_STRUCT_DEF && 
+                child->type != NODE_EXTERN_BLOCK && 
+                child->type != NODE_IMPORT)
             {
                 if (child->type == NODE_METHOD_CALL)
                 {
