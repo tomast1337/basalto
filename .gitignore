@@ -25,3 +25,16 @@ nob.old
 *~
 .DS_Store
 Thumbs.db
+
+# --- python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+*.pyzw
+*.pyzwz
+*.pyzwzw
+*.pyzwzwzw
