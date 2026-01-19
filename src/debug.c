@@ -28,6 +28,17 @@ static const char* node_type_name(NodeType type) {
         case NODE_ARRAY_LITERAL: return "ARRAY_LITERAL";
         case NODE_ARRAY_ACCESS: return "ARRAY_ACCESS";
         case NODE_METHOD_CALL: return "METHOD_CALL";
+        case NODE_STRUCT_DEF: return "STRUCT_DEF";
+        case NODE_PROP_ACCESS: return "PROP_ACCESS";
+        case NODE_ASSERT: return "ASSERT";
+        case NODE_FUNC_DEF: return "FUNC_DEF";
+        case NODE_RETURN: return "RETURN";
+        case NODE_EXTERN_BLOCK: return "EXTERN_BLOCK";
+        case NODE_LITERAL_NULL: return "LITERAL_NULL";
+        case NODE_NEW: return "NEW";
+        case NODE_EMBED: return "EMBED";
+        case NODE_IMPORT: return "IMPORT";
+        case NODE_LIBRARY: return "LIBRARY";
         default: return "UNKNOWN";
     }
 }
@@ -78,6 +89,14 @@ static void print_ast_node_internal(ASTNode* node, int depth) {
             }
             if (node->cada_type) {
                 printf(" var_type='%s'", node->cada_type);
+            }
+            break;
+        case NODE_IMPORT:
+            if (node->import_alias) {
+                printf(" alias='%s'", node->import_alias);
+            }
+            if (node->import_path) {
+                printf(" path='%s'", node->import_path);
             }
             break;
         default:

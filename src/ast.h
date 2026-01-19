@@ -38,7 +38,8 @@ typedef enum {
     NODE_EXTERN_BLOCK, // externo math "lib.so" { ... }
     NODE_LITERAL_NULL, // nulo
     NODE_NEW,          // nova Node
-    NODE_EMBED         // incorporar "file.png"
+    NODE_EMBED,        // incorporar "file.png"
+    NODE_IMPORT        // importar mat @ "std/matematica"
 } NodeType;
 
 typedef struct ASTNode {
@@ -60,6 +61,9 @@ typedef struct ASTNode {
     // FFI fields
     sds lib_name;      // "libm.so.6" (Stored in NODE_EXTERN_BLOCK)
     sds func_alias;    // "cos" (Stored in NODE_FUNC_DEF, optional)
+    // Import fields
+    sds import_alias;  // e.g. "mat"
+    sds import_path;   // e.g. "std/matematica"
 } ASTNode;
 
 // Prototypes only!

@@ -32,6 +32,7 @@ ASTNode* root_node = NULL;
 %token TOKEN_PROGRAMA TOKEN_BIBLIOTECA TOKEN_VAR TOKEN_SE TOKEN_SENAO TOKEN_EXTERNO TOKEN_FUNCAO TOKEN_SEMICOLON
 %token TOKEN_ENQUANTO TOKEN_CADA TOKEN_INFINITO TOKEN_PARAR TOKEN_CONTINUAR TOKEN_DOTDOT TOKEN_LER
 %token TOKEN_ESTRUTURA TOKEN_ASSERT TOKEN_RETORNE TOKEN_NULL TOKEN_NEW TOKEN_TRUE TOKEN_FALSE TOKEN_EMBED
+%token TOKEN_IMPORT TOKEN_AT
 
 %left '+' '-'
 %left '*' '/'
@@ -42,13 +43,55 @@ ASTNode* root_node = NULL;
 %left '('
 
 /* Types for non-terminals */
-%type <node> root program library block statements statement var_decl assign_stmt if_stmt enquanto_stmt expr logical_expr comparison_expr term factor cada_stmt infinito_stmt flow_stmt input_stmt type_def array_literal expr_list arg_list method_call struct_def field_list field_decl prop_access lvalue assert_stmt func_def param_list param return_stmt extern_block extern_func_list extern_func opt_symbol_map
+%type <node> root program library block statements statement var_decl assign_stmt if_stmt enquanto_stmt expr logical_expr comparison_expr term factor cada_stmt infinito_stmt flow_stmt input_stmt type_def array_literal expr_list arg_list method_call struct_def field_list field_decl prop_access lvalue assert_stmt func_def param_list param return_stmt extern_block extern_func_list extern_func opt_symbol_map import_stmt import_list
 
 %%
 
 root:
-    program { root_node = $1; }
-    | library { root_node = $1; }
+    import_list program { 
+        // WRAPPER STRATEGY:
+        // We return a "Shell" Program Node that contains the imports AND the actual program.
+        // This allows main.c to process them in order.
+        ASTNode* wrapper = ast_new(NODE_PROGRAM);
+        if ($2->name) wrapper->name = sdsnew($2->name);
+        
+        // 1. Add Imports first
+        if ($1 && $1->children) {
+            for(int i=0; i<arrlen($1->children); i++) ast_add_child(wrapper, $1->children[i]);
+        }
+        
+        // 2. Add the Program itself
+        ast_add_child(wrapper, $2);
+        
+        root_node = wrapper; 
+    }
+    | import_list library { 
+        ASTNode* wrapper = ast_new(NODE_LIBRARY);
+        if ($2->name) wrapper->name = sdsnew($2->name);
+        if ($1 && $1->children) {
+            for(int i=0; i<arrlen($1->children); i++) ast_add_child(wrapper, $1->children[i]);
+        }
+        ast_add_child(wrapper, $2);
+        root_node = wrapper; 
+    }
+    ;
+
+import_list:
+    import_list import_stmt {
+        $$ = $1;
+        ast_add_child($$, $2);
+    }
+    | /* empty */ {
+        $$ = ast_new(NODE_BLOCK); // Temp container
+    }
+    ;
+
+import_stmt:
+    TOKEN_IMPORT TOKEN_ID TOKEN_AT TOKEN_LIT_STRING TOKEN_SEMICOLON {
+        $$ = ast_new(NODE_IMPORT);
+        $$->import_alias = sdsnew($2); // Alias (e.g. "mat")
+        $$->import_path = sdsnew($4);  // Path
+    }
     ;
 
 program:

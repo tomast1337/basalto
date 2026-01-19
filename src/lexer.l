@@ -64,6 +64,7 @@ ID_START [a-zA-Z_\x80-\xff]
 
 "programa"  { if (debug_mode) printf("[LEX] TOKEN_PROGRAMA\n"); return TOKEN_PROGRAMA; }
 "biblioteca" { if (debug_mode) printf("[LEX] TOKEN_BIBLIOTECA\n"); return TOKEN_BIBLIOTECA; }
+"importar"   { if (debug_mode) printf("[LEX] TOKEN_IMPORT\n"); return TOKEN_IMPORT; }
 "var"       { if (debug_mode) printf("[LEX] TOKEN_VAR\n"); return TOKEN_VAR; }
 "se"        { if (debug_mode) printf("[LEX] TOKEN_SE\n"); return TOKEN_SE; }
 "senao"     { if (debug_mode) printf("[LEX] TOKEN_SENAO\n"); return TOKEN_SENAO; }
@@ -84,6 +85,7 @@ ID_START [a-zA-Z_\x80-\xff]
 "falso"     { if (debug_mode) printf("[LEX] TOKEN_FALSE\n"); return TOKEN_FALSE; }
 "incorporar" { if (debug_mode) printf("[LEX] TOKEN_EMBED\n"); return TOKEN_EMBED; }
 
+"@"         { return TOKEN_AT; }
 ";"         { return TOKEN_SEMICOLON; }
 \.\.        { return TOKEN_DOTDOT; } /* Range Operator 0..10 */
 
