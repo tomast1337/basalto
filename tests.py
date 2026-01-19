@@ -61,8 +61,8 @@ def test_primitives_variables():
     assert "Tam = 100" in proc_run.stdout
     assert "B = 255" in proc_run.stdout
     assert "R32 = 3.14" in proc_run.stdout
-    assert "R64 = 3.1415930000" in proc_run.stdout
-    assert "R_ext = 0.00000000000000000000" in proc_run.stdout
+    assert "R64 = 3.1415926535" in proc_run.stdout
+    assert "R_ext = 3.14159265358979311600" in proc_run.stdout
     assert "Ativo = 1" in proc_run.stdout
     assert "Ptr = 0" in proc_run.stdout
     assert "V = 0" in proc_run.stdout
@@ -73,9 +73,9 @@ def test_primitives_variables():
     assert "N16 = 65535" in proc_run.stdout
     assert "N32 = 2147483647" in proc_run.stdout
     assert "N64 = 2147483647" in proc_run.stdout
-    assert "F32 = 1.5" in proc_run.stdout
-    assert "F64 = 2.71828" in proc_run.stdout
-    assert "F_ext = 1.123456789" in proc_run.stdout
+    assert "F32 = 1.500000000" in proc_run.stdout
+    assert "F64 = 2.7182800000000000" in proc_run.stdout
+    assert "F_ext = 1.12345678900000001121" in proc_run.stdout
     assert "Bl = 0" in proc_run.stdout
 
 
@@ -83,15 +83,18 @@ def test_program_with_input():
     # Example: A program that asks for a name and greets the user
 
     # 1. Compile
-    subprocess.run(["./build/basalto", "examples/input-test.bso"], check=True)
+    subprocess.run(["./build/basalto", "examples/2-console-io.bso"], check=True)
 
     # 2. Run WITH INPUT
     # This specific test needs to feed "Nicolas" into stdin
     proc_run = subprocess.run(
-        ["./InputTest"],
-        input="Nicolas\n",  # <--- Unique requirement here
+        ["./EntradaSaida"],
+        input="Nicolas\n25\n26\n",
         capture_output=True,
         text=True
     )
 
-    assert "Hello, Nicolas" in proc_run.stdout
+    print(proc_run.stdout)
+
+    assert "Olá Nicolas, com 26 ano(s)" in proc_run.stdout
+    assert "Fim." in proc_run.stdout
