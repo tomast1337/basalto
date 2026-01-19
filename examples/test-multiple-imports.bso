@@ -1,0 +1,5 @@
+importar math @ "std/math";
+importar io @ "std/io";
+importar str @ "std/string";
+programa "MultipleImports" {
+}
